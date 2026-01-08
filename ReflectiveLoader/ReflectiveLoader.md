@@ -22,3 +22,11 @@ The basic steps to Reflectively Load a DLL are:
 8) Iterate through all section and change their permissions
 < Optional - modify PEB commandline >
 9) Jump to entry point of our in-memory PE
+
+-------------------------------------------------------------
+How to Build and use ReflectiveLoader.c 
+-------------------------------------------------------------
+
+Build:
+
+cl.exe ReflectiveLoader.c /o ReflectiveLoader.exe
