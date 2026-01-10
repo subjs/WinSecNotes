@@ -77,13 +77,13 @@ VOID GetSsnFromSyscall(IN PVOID pFunc, OUT PWORD pSsn) {
 int main() {
 
 	printf("Hellow WOrld\n");
-	//First we find the Syscal Service Number - note, the inconsisent letter-casing can be normalized (
+	//First we find the Syscall Service Number - note, the inconsisent letter-casing can be normalized (
 	//We use custom functions so that we are completely syscall-free
 	HMODULE hNtdll = CustomGetModuleHandle(L"ntdll.dll");
 	/*CustomGetModuleHandle(L"kernel32.dll");
 	CustomGetModuleHandle(L"kernelbase.dll");*/
 
-	//Parse NtCreateFile text section for Syscall Service Number
+	//Parse NtGetCurrentProcessorNumber text section for Syscall Service Number
 	PVOID pNtGetCurrentProcessorNumber = CustomGetProcAddressCustom(hNtdll, "NtGetCurrentProcessorNumber");
 	DWORD NtGetCurrentProcessorNumberSSN = 0;
 	GetSsnFromSyscall(pNtGetCurrentProcessorNumber, &NtGetCurrentProcessorNumberSSN);
