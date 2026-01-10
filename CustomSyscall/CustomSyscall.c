@@ -64,7 +64,7 @@ VOID GetSsnFromSyscall(IN PVOID pFunc, OUT PWORD pSsn) {
 	//First lets read bytes until RET instr
 	for (int i = 0; i < 100; i++) {
 		//mov r10,rcx # 4C 8BD1 
-		//mov eax, <SYSCALL> # B8 <SYSCALL>#  < --Searching for this SYSCALL number
+		//mov eax, <SYSCALL> # B8 <SYSCALL>#  < --Search target
 		//
 		if( (pbFunc[i] == 0x4C && pbFunc[i+1] == 0x8B && pbFunc[i + 2] == 0xD1) && 
 			(pbFunc[i+3] == 0xB8)) {
@@ -80,13 +80,13 @@ int main() {
 	//First we find the Syscal Service Number - note, the inconsisent letter-casing can be normalized (
 	//We use custom functions so that we are completely syscall-free
 	HMODULE hNtdll = CustomGetModuleHandle(L"ntdll.dll");
-	//CustomGetModuleHandle(L"kernel32.dll");
-	//CustomGetModuleHandle(L"kernelbase.dll");
+	/*CustomGetModuleHandle(L"kernel32.dll");
+	CustomGetModuleHandle(L"kernelbase.dll");*/
 
 	//Parse NtCreateFile text section for Syscall Service Number
-	PVOID pNtCreateFile = CustomGetProcAddressCustom(hNtdll, "NtGetCurrentProcessorNumber");
+	PVOID pNtGetCurrentProcessorNumber = CustomGetProcAddressCustom(hNtdll, "NtGetCurrentProcessorNumber");
 	DWORD NtGetCurrentProcessorNumberSSN = 0;
-	GetSsnFromSyscall(pNtCreateFile, &NtGetCurrentProcessorNumberSSN);
+	GetSsnFromSyscall(pNtGetCurrentProcessorNumber, &NtGetCurrentProcessorNumberSSN);
 
 	//Now use Syscall Service Number to call syscall directly
 	StageSyscall(NtGetCurrentProcessorNumberSSN);
