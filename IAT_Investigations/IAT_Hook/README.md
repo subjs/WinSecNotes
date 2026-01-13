@@ -18,6 +18,7 @@ What's going on under the hood? See ```localHook()``` function.
 
 So the first window is the original ```MessageBoxA``` function. The second and third windows are from our custom function (the first being the Wide version and the second being the original ANSI function).
 
+In the future, we can try overwritting a remote process's IAT (given that we have permissions to Open and Write to its memory).
 
 Build
 
