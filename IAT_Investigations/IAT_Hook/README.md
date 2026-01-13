@@ -17,3 +17,8 @@ What's going on under the hood? See ```localHook()``` function.
 5) Finally we call ```MessageBoxA(NULL, "After hook", "After hook caption", 0);```.
 
 So the first window is the original ```MessageBoxA``` function. The second and third windows are from our custom function (the first being the Wide version and the second being the original ANSI function).
+
+
+Build
+
+```cl localIATHook.c```
