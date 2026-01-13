@@ -7,8 +7,8 @@ if a process is trying to make an EXECUTE data section into WRITE temporarily.
 Still an interesting learning exercise though.
 
 
-BUILD----
+Build
 
-cl remapNtdll.c /o remapNtdll.exe
+```cl remapNtdll.c /o remapNtdll.exe```
 
 NOTE: There are no visible effects of this exercise atm. 
