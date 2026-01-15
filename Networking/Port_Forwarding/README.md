@@ -1,3 +1,5 @@
+#Port Forwarding and SOCKS5#
+
 Firstly, Port Forwarding. This is a server that listens for TCP or UDP traffic on a specified host + port (local host + port) and then simply sends the same data to another specified port(remote host + port).
 
 It is easy to implement, but it is not very flexible. For red teaming, this can be used to connect machine ```A``` <==> ```B``` , if ```B``` normally doesn't allow connections with ```A``` (perhaps it has a firewall rule blocking ```A```'s traffic).
