@@ -1,3 +1,8 @@
+#To test this, run: python3 socks5_proxy.py in one terminal
+#Then try to exec a client socks5 connection using curl: curl --socks5-hostname 127.0.0.1:1080 http://example.com
+#The client should return a normal looking html response
+#You will know it worked if you try the same curl command without this socks5_proxy running - and then you get a connection error.
+
 import socket
 import threading
 import struct
