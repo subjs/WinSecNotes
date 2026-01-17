@@ -10,7 +10,8 @@ Now the issue with this simple port forwarding is that it is very simple. You ne
 
 Enter **SOCKS5**. This is a TCP/UDP forwarder that packs the important routing (and authentication) data into a SOCKS5 header. The full specs of how the handshake works is here: https://datatracker.ietf.org/doc/html/rfc1928.
 
-After a specific connection instance finishes its SOCKS5 handshake, then it will forward traffic back and forth just like our basic Port Forwarder.
+After a specific connection instance finishes its SOCKS5 handshake, then it will forward traffic back and forth just like our basic Port Forwarder. Our basic Port Forwarder, however, is only capable of forwarding one connection to and from a fixed IP+port.
+The SOCKS5 proxy server is more flexible - each connection can be forwarded to a different IP+port.
 
 
 **NOTE**: For a more fully capable SOCKS5 proxy, check out:
