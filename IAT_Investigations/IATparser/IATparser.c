@@ -5,8 +5,7 @@ void PrintMyIAT()
     HMODULE base = GetModuleHandle(NULL);
 
     PIMAGE_DOS_HEADER dos = (PIMAGE_DOS_HEADER)base;
-    PIMAGE_NT_HEADERS nt =
-        (PIMAGE_NT_HEADERS)((BYTE*)base + dos->e_lfanew);
+    PIMAGE_NT_HEADERS nt = (PIMAGE_NT_HEADERS)((BYTE*)base + dos->e_lfanew);
 
     IMAGE_DATA_DIRECTORY importDir =
         nt->OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_IMPORT];
@@ -22,8 +21,7 @@ void PrintMyIAT()
         LPCSTR dllName = (LPCSTR)((BYTE*)base + impDesc->Name);
         printf("DLL: %s\n", dllName);
 
-        PIMAGE_THUNK_DATA iat =
-            (PIMAGE_THUNK_DATA)((BYTE*)base + impDesc->FirstThunk);
+        PIMAGE_THUNK_DATA iat = (PIMAGE_THUNK_DATA)((BYTE*)base + impDesc->FirstThunk);
 
         for (; iat->u1.Function != 0; iat++)
         {
@@ -51,12 +49,8 @@ int main(){
     PIMAGE_IMPORT_DESCRIPTOR impDesc = (PIMAGE_IMPORT_DESCRIPTOR)((BYTE*)base + importDir.VirtualAddress);
     for (;impDesc->Name != 0; impDesc++) {
         LPCSTR dllName = (LPCSTR)((BYTE*)base + impDesc->Name);
-        /*PIMAGE_THUNK_DATA iat = (PIMAGE_THUNK_DATA)((BYTE*)base + impDesc->FirstThunk);
-        iat->u1.Function*/
         printf("%s\n", dllName);
-
-        PIMAGE_THUNK_DATA iat =
-            (PIMAGE_THUNK_DATA)((BYTE*)base + impDesc->FirstThunk);
+        PIMAGE_THUNK_DATA iat = (PIMAGE_THUNK_DATA)((BYTE*)base + impDesc->FirstThunk);
 
         for (; iat->u1.Function != 0; iat++)
         {
