@@ -65,7 +65,6 @@ VOID GetSsnFromSyscall(IN PVOID pFunc, OUT PWORD pSsn) {
 	for (int i = 0; i < 100; i++) {
 		//mov r10,rcx # 4C 8BD1 
 		//mov eax, <SYSCALL> # B8 <SYSCALL>#  < --Search target
-		//
 		if( (pbFunc[i] == 0x4C && pbFunc[i+1] == 0x8B && pbFunc[i + 2] == 0xD1) && 
 			(pbFunc[i+3] == 0xB8)) {
 			*pSsn = pbFunc[i + 4];
@@ -76,12 +75,12 @@ VOID GetSsnFromSyscall(IN PVOID pFunc, OUT PWORD pSsn) {
 
 int main() {
 
-	printf("Hellow WOrld\n");
+	printf("Hellow World\n");
 	//First we find the Syscall Service Number - note, the inconsisent letter-casing can be normalized (
 	//We use custom functions so that we are completely syscall-free
 	HMODULE hNtdll = CustomGetModuleHandle(L"ntdll.dll");
-	/*CustomGetModuleHandle(L"kernel32.dll");
-	CustomGetModuleHandle(L"kernelbase.dll");*/
+	//CustomGetModuleHandle(L"kernel32.dll");
+	//CustomGetModuleHandle(L"kernelbase.dll");
 
 	//Parse NtGetCurrentProcessorNumber text section for Syscall Service Number
 	PVOID pNtGetCurrentProcessorNumber = CustomGetProcAddressCustom(hNtdll, "NtGetCurrentProcessorNumber");
