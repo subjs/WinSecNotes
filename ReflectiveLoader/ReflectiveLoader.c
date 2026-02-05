@@ -73,9 +73,6 @@ BOOL ParseImagePE(BYTE* image, DWORD image_size) {
 
 	PIMAGE_NT_HEADERS64 ntHeaders = (PIMAGE_NT_HEADERS64)((BYTE*)dos_header + dos_header->e_lfanew);
 
-	//nt->Signature;
-	//nt->FileHeader;
-	//nt->OptionalHeader;
 	if (ntHeaders->Signature != IMAGE_NT_SIGNATURE) {
 		printf("NT HEADER SIGNATURE NOT FOUND\n");
 		return FALSE;
@@ -84,6 +81,7 @@ BOOL ParseImagePE(BYTE* image, DWORD image_size) {
 	printf("NT Header %lu\n", ntHeaders->Signature);
 	printf("IMAGE_NT_SIGNATURE %lu\n", IMAGE_NT_SIGNATURE);
 	PIMAGE_FILE_HEADER ntFileHeader = &(ntHeaders->FileHeader);
+	
 	/*typedef struct _IMAGE_FILE_HEADER {
 		WORD    Machine;
 		WORD    NumberOfSections;
@@ -153,7 +151,7 @@ BOOL ParseImagePE(BYTE* image, DWORD image_size) {
 	PIMAGE_DATA_DIRECTORY pDataDirectoryReloc = &(ntOptionalHeader->DataDirectory[IMAGE_DIRECTORY_ENTRY_BASERELOC]);
 	PIMAGE_DATA_DIRECTORY pDataDirectoryException = &(ntOptionalHeader->DataDirectory[IMAGE_DIRECTORY_ENTRY_EXCEPTION]);
 
-	LPVOID pBufInMemPE;// = VirtualAlloc(NULL, SizeOfImage, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
+	LPVOID pBufInMemPE;
 	pBufInMemPE = VirtualAlloc(NULL, SizeOfImage, MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
 	
 	if (pBufInMemPE == NULL) {
@@ -168,7 +166,6 @@ BOOL ParseImagePE(BYTE* image, DWORD image_size) {
 	for (int i = 0; i < numOfSections; i++) {
 		IMAGE_SECTION_HEADER sectionHeader = pSectionHeader[i];
 		printf("Copying over %s\n", sectionHeader.Name);
-
 		memcpy((DWORD64)pBufInMemPE + sectionHeader.VirtualAddress, (DWORD64)image + sectionHeader.PointerToRawData, sectionHeader.SizeOfRawData);
 	}
 
@@ -239,7 +236,6 @@ BOOL ParseImagePE(BYTE* image, DWORD image_size) {
 	while (pImageImportDescriptor->FirstThunk != NULL && pImageImportDescriptor->OriginalFirstThunk != NULL) {
 		PCHAR dllName = (PCHAR)pBufInMemPE + pImageImportDescriptor->Name;
 		printf("pImageImportDescriptor[i].Name %s\n", dllName);
-		//
 		HMODULE hModule = GetModuleHandleA(dllName);
 		if (hModule == INVALID_HANDLE_VALUE || hModule == NULL) {
 			hModule = LoadLibraryA(dllName);
@@ -270,10 +266,8 @@ BOOL ParseImagePE(BYTE* image, DWORD image_size) {
 				printf("Error: GetProcAddress\n");
 				return FALSE;
 			}
-
 			//set found address from INT to IAT
 			pFirstThunk->u1.Function = funcAddress;
-
 			pOriginalFirstThunk++;
 			pFirstThunk++;
 
@@ -328,7 +322,6 @@ BOOL ParseImagePE(BYTE* image, DWORD image_size) {
 		}
 	}
 
-	//TODO FULLY IMPLEMENT THIS LATER
 	printf("Now we modify our PEB to update the commandline from this loader to the image\n");
 #ifdef _M_X64
 	PPEB pPeb = (PPEB) __readgsqword(12*sizeof(PVOID));
@@ -338,23 +331,19 @@ BOOL ParseImagePE(BYTE* image, DWORD image_size) {
 	USHORT originalLen = pPeb->ProcessParameters->CommandLine.Length;
 	PWSTR originalCommandline;// = VirtualAlloc(NULL, originalLen, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 	originalCommandline = VirtualAlloc(NULL, originalLen, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
-
 	if (originalCommandline) {
 		memcpy(originalCommandline, pPeb->ProcessParameters->CommandLine.Buffer, originalLen);
 	}
 	pPeb->ProcessParameters->CommandLine.Buffer[0] = L'Z';
-	
 	printf("Current Command Line %S\n", pPeb->ProcessParameters->CommandLine.Buffer);
-
 	printf("DONE\n");
-
 	VirtualFree(originalCommandline, NULL, MEM_RELEASE);
-	/////////////////////////////////////
 
 	printf("Now we will jump to the entry point of our in memory PE\n");
 	LPVOID pEntry = (BYTE*)pBufInMemPE + ntOptionalHeader->AddressOfEntryPoint;
 	typedef BOOL(*DLLMAIN)(HINSTANCE, DWORD, LPVOID);
 	typedef BOOL(*MAIN)(DWORD, PCHAR);
+	
 	//if DLL
 	if((ntHeaders->FileHeader.Characteristics & IMAGE_FILE_DLL)){
 		((DLLMAIN)pEntry) (pBufInMemPE, DLL_PROCESS_ATTACH, NULL);
@@ -362,9 +351,7 @@ BOOL ParseImagePE(BYTE* image, DWORD image_size) {
 	else {
 		((MAIN)pEntry)(1, NULL);
 	}
-  
-  VirtualFree(pBufInMemPE, NULL, MEM_RELEASE);
-	
+	VirtualFree(pBufInMemPE, NULL, MEM_RELEASE);
 	return TRUE;
 }
 
@@ -378,8 +365,7 @@ int main(int argc, char* argv[]) {
 	BYTE* image;
 	DWORD image_size;
 	OpenPEToByteArray(argv[1], &image, &image_size);
-
-	printf("A\n");
+	
 	if (!ParseImagePE(image, image_size, NULL)) {
 		printf("Error with PE format\n");
 	}
@@ -388,8 +374,5 @@ int main(int argc, char* argv[]) {
 	}
 
 	free(image);
-
-	printf("END\n");
-
 	return 0;
 }
