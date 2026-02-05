@@ -34,7 +34,7 @@ void localHook() {
 	while (importDescriptor->Name != NULL) {
 		libraryName = (LPCSTR)importDescriptor->Name + (DWORD_PTR)imageBase;
 		library = LoadLibraryA(libraryName);
-		//printf("%s\n", libraryName);
+
 		if (library) {
 			PIMAGE_THUNK_DATA originalFirstThunk = NULL, firstThunk = NULL;
 			originalFirstThunk = (PIMAGE_THUNK_DATA)((DWORD_PTR)imageBase + importDescriptor->OriginalFirstThunk);
@@ -42,13 +42,10 @@ void localHook() {
 
 			while (originalFirstThunk->u1.AddressOfData != NULL) {
 				functionName = (PIMAGE_IMPORT_BY_NAME)((DWORD_PTR)imageBase + originalFirstThunk->u1.AddressOfData);
-				//printf("%s\n", functionName->Name);
 				if (strncmp((PCHAR)functionName->Name, "MessageBoxA", 11) == 0) {
-					//printf("Found MessageBoxA\n");
 					SIZE_T bytesWritten = 0;
 					DWORD oldProtect = 0;
 					VirtualProtect((LPVOID)(&firstThunk->u1.Function), 8, PAGE_READWRITE, &oldProtect);
-
 					firstThunk->u1.Function = (DWORD_PTR)hookedMessageBox;
 				}
 				originalFirstThunk++;
@@ -57,7 +54,6 @@ void localHook() {
 		}
 		importDescriptor++;
 	}
-
 	//Post IAT Hooking
 	MessageBoxA(NULL, "After hook", "After hook caption", 0);
 }
