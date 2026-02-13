@@ -26,10 +26,9 @@ BOOL OpenPEToByteArray(LPCSTR filepath, BYTE** image, DWORD* image_size) {
 		PrintLastError(GetLastError());
 		return FALSE;
 	}
-	printf("Opened File %S\n", filepath);
+
+	printf("Opened File %TS\n", filepath);
 	
-
-
 	LARGE_INTEGER fileSize;
 	if (!GetFileSizeEx(hFile, &fileSize)) {
 		printf("Error getting file size: %d\n", GetLastError());
@@ -66,18 +65,13 @@ BOOL ParseImagePE(BYTE* image, DWORD image_size) {
 		return FALSE;
 	}
 	printf("Magic number found\n");
-
 	dos_header->e_lfanew; //Fileoffset for NT Header struct
-
-	printf("dos_header->e_lfanew = 0x%p\n", dos_header->e_lfanew);
-
+	printf("dos_header->e_lfanew = 0x%lx\n", dos_header->e_lfanew);
 	PIMAGE_NT_HEADERS64 ntHeaders = (PIMAGE_NT_HEADERS64)((BYTE*)dos_header + dos_header->e_lfanew);
-
 	if (ntHeaders->Signature != IMAGE_NT_SIGNATURE) {
 		printf("NT HEADER SIGNATURE NOT FOUND\n");
 		return FALSE;
 	}
-
 	printf("NT Header %lu\n", ntHeaders->Signature);
 	printf("IMAGE_NT_SIGNATURE %lu\n", IMAGE_NT_SIGNATURE);
 	PIMAGE_FILE_HEADER ntFileHeader = &(ntHeaders->FileHeader);
@@ -166,16 +160,15 @@ BOOL ParseImagePE(BYTE* image, DWORD image_size) {
 	for (int i = 0; i < numOfSections; i++) {
 		IMAGE_SECTION_HEADER sectionHeader = pSectionHeader[i];
 		printf("Copying over %s\n", sectionHeader.Name);
-		memcpy((DWORD64)pBufInMemPE + sectionHeader.VirtualAddress, (DWORD64)image + sectionHeader.PointerToRawData, sectionHeader.SizeOfRawData);
+		memcpy((PVOID)((DWORD64)pBufInMemPE + sectionHeader.VirtualAddress), (PVOID)((DWORD64)image + sectionHeader.PointerToRawData), sectionHeader.SizeOfRawData);
 	}
 
 	//Figuring out our relocation data
 	DWORD totalBaseRelocationEntries = pDataDirectoryReloc->Size ;
 	//We calculate the needed offset by:
 	DWORD64 relocOffset = (DWORD64)pBufInMemPE - ImageBase;
-	printf("Relocation Offset %lu\n", relocOffset);
+	printf("Relocation Offset %llu\n", relocOffset);
 	//Now we will find all of the offset that we need to adjust(using the relocation table)
-
 	printf("Total Number of IMAGE_BASE_RELOCATION_ENTRY entries %x\n", totalBaseRelocationEntries);
 
 	typedef struct _IMAGE_BASE_RELOCATION_ENTRY {
@@ -183,9 +176,9 @@ BOOL ParseImagePE(BYTE* image, DWORD image_size) {
 		WORD Type : 4;
 	} IMAGE_BASE_RELOCATION_ENTRY, * PIMAGE_BASE_RELOCATION_ENTRY;
 
-	PIMAGE_BASE_RELOCATION pImageBaseRelocation = (DWORD64)pBufInMemPE + pDataDirectoryReloc->VirtualAddress;
-	BYTE* relocBase = pImageBaseRelocation;
-	BYTE* relocEnd = pImageBaseRelocation + pDataDirectoryReloc->Size;
+	PIMAGE_BASE_RELOCATION pImageBaseRelocation = (PIMAGE_BASE_RELOCATION)((DWORD64)pBufInMemPE + pDataDirectoryReloc->VirtualAddress);
+	BYTE* relocBase = (BYTE*)pImageBaseRelocation;
+	BYTE* relocEnd = (BYTE*)(pImageBaseRelocation + pDataDirectoryReloc->Size);
 
 	while (relocBase < relocEnd) {
 		PIMAGE_BASE_RELOCATION block = (PIMAGE_BASE_RELOCATION)relocBase;
@@ -221,7 +214,6 @@ BOOL ParseImagePE(BYTE* image, DWORD image_size) {
 	}
 	printf("Finished Relocating things\n");
 
-
 	//Now we fix imports
 	IMAGE_IMPORT_DESCRIPTOR;
 	IMAGE_THUNK_DATA;
@@ -230,10 +222,10 @@ BOOL ParseImagePE(BYTE* image, DWORD image_size) {
 	printf("Fixing Imports\n");
 	printf("Import Descriptor array size %lu\n", pDataDirectoryImport->Size);
 	printf("Import Descriptor array VA 0x%X\n", pDataDirectoryImport->VirtualAddress);
-	PIMAGE_IMPORT_DESCRIPTOR pImageImportDescriptor = (DWORD64)pBufInMemPE + pDataDirectoryImport->VirtualAddress;
+	PIMAGE_IMPORT_DESCRIPTOR pImageImportDescriptor = (PIMAGE_IMPORT_DESCRIPTOR)((DWORD64)pBufInMemPE + pDataDirectoryImport->VirtualAddress);
 	DWORD numDataDirectoryImports = pDataDirectoryImport->Size / sizeof(IMAGE_IMPORT_DESCRIPTOR);
 	//First we iterate to get all names
-	while (pImageImportDescriptor->FirstThunk != NULL && pImageImportDescriptor->OriginalFirstThunk != NULL) {
+	while (pImageImportDescriptor->FirstThunk != 0 && pImageImportDescriptor->OriginalFirstThunk != 0) {
 		PCHAR dllName = (PCHAR)pBufInMemPE + pImageImportDescriptor->Name;
 		printf("pImageImportDescriptor[i].Name %s\n", dllName);
 		HMODULE hModule = GetModuleHandleA(dllName);
@@ -250,13 +242,13 @@ BOOL ParseImagePE(BYTE* image, DWORD image_size) {
 		PIMAGE_THUNK_DATA pOriginalFirstThunk = (PIMAGE_THUNK_DATA) ((BYTE*)pBufInMemPE + pImageImportDescriptor->OriginalFirstThunk);
 		PIMAGE_THUNK_DATA pFirstThunk = (PIMAGE_THUNK_DATA) ((BYTE*)pBufInMemPE  + pImageImportDescriptor->FirstThunk);
 		BOOL isOrdinal = FALSE;
-		while(pOriginalFirstThunk->u1.AddressOfData != NULL && pFirstThunk->u1.AddressOfData){
+		while(pOriginalFirstThunk->u1.AddressOfData != 0 && pFirstThunk->u1.AddressOfData){
 			isOrdinal = ((pOriginalFirstThunk->u1.Ordinal & IMAGE_ORDINAL_FLAG) == 0 ? FALSE : TRUE);
 			LPVOID funcAddress = NULL;
 			PIMAGE_IMPORT_BY_NAME pImageImportByName;
 			if (isOrdinal) {
-				printf("\Ordinal: %llu\n", pOriginalFirstThunk->u1.Ordinal);
-				funcAddress = GetProcAddress(hModule, IMAGE_ORDINAL(pOriginalFirstThunk->u1.Ordinal));
+				printf("\nOrdinal: %llu\n", pOriginalFirstThunk->u1.Ordinal);
+				funcAddress = GetProcAddress(hModule, (LPCSTR)IMAGE_ORDINAL(pOriginalFirstThunk->u1.Ordinal));
 			} else {
 				pImageImportByName = (PIMAGE_IMPORT_BY_NAME) ((BYTE*)pBufInMemPE + pOriginalFirstThunk->u1.AddressOfData);
 				printf("\tName: %s\n", pImageImportByName->Name);
@@ -267,7 +259,7 @@ BOOL ParseImagePE(BYTE* image, DWORD image_size) {
 				return FALSE;
 			}
 			//set found address from INT to IAT
-			pFirstThunk->u1.Function = funcAddress;
+			pFirstThunk->u1.Function = (ULONGLONG)funcAddress;
 			pOriginalFirstThunk++;
 			pFirstThunk++;
 
@@ -277,9 +269,9 @@ BOOL ParseImagePE(BYTE* image, DWORD image_size) {
 	}
 	printf("Now we must register exception handlers\n");
 	RUNTIME_FUNCTION;
-	if (pDataDirectoryException->VirtualAddress != NULL) {
+	if (pDataDirectoryException->VirtualAddress != 0) {
 		PRUNTIME_FUNCTION pFunctionTable = (PRUNTIME_FUNCTION)((BYTE*)pBufInMemPE + pDataDirectoryException->VirtualAddress);
-		if (!RtlAddFunctionTable(pFunctionTable, (pDataDirectoryException->Size / sizeof(RUNTIME_FUNCTION)),pBufInMemPE)) {
+		if (!RtlAddFunctionTable(pFunctionTable, (pDataDirectoryException->Size / sizeof(RUNTIME_FUNCTION)),(DWORD64)pBufInMemPE)) {
 			printf("RtlAddFunctionTable\n");
 			return FALSE;
 		}
@@ -337,7 +329,7 @@ BOOL ParseImagePE(BYTE* image, DWORD image_size) {
 	pPeb->ProcessParameters->CommandLine.Buffer[0] = L'Z';
 	printf("Current Command Line %S\n", pPeb->ProcessParameters->CommandLine.Buffer);
 	printf("DONE\n");
-	VirtualFree(originalCommandline, NULL, MEM_RELEASE);
+	VirtualFree(originalCommandline, 0, MEM_RELEASE);
 
 	printf("Now we will jump to the entry point of our in memory PE\n");
 	LPVOID pEntry = (BYTE*)pBufInMemPE + ntOptionalHeader->AddressOfEntryPoint;
@@ -351,7 +343,7 @@ BOOL ParseImagePE(BYTE* image, DWORD image_size) {
 	else {
 		((MAIN)pEntry)(1, NULL);
 	}
-	VirtualFree(pBufInMemPE, NULL, MEM_RELEASE);
+	VirtualFree(pBufInMemPE, 0, MEM_RELEASE);
 	return TRUE;
 }
 
@@ -366,7 +358,7 @@ int main(int argc, char* argv[]) {
 	DWORD image_size;
 	OpenPEToByteArray(argv[1], &image, &image_size);
 	
-	if (!ParseImagePE(image, image_size, NULL)) {
+	if (!ParseImagePE(image, image_size)) {
 		printf("Error with PE format\n");
 	}
 	else {
